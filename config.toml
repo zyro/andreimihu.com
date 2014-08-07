@@ -1,6 +1,7 @@
 baseurl = "http://andreimihu.com/"
 title = "Always a Work in Progress"
 languageCode = "en-us"
+disqusShortname = "andreimihu"
 MetaDataFormat = "toml"
 
 [author]
@@ -25,7 +26,6 @@ MetaDataFormat = "toml"
     # Metadata used to drive integrations.
 	googleAuthorship = "116158239234656634929"
     googleAnalytics = "UA-44918664-1"
-    disqusShortname = "andreimihu"
     gravatarHash = "4ad01d4e7c9463cfb5119bdf07d5fcfa"
 
     # Sidebar social links, avoid enabling too many of these if possible.

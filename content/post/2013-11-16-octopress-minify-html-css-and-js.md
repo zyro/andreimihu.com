@@ -2,28 +2,14 @@
 date = "2013-11-16"
 title = "Octopress: Minify HTML, CSS and JS"
 description = "How to improve Octopress site performance, with specific emphasis on minifying HTML, CSS and JS resources"
-keywords = [
-	"octopress",
-	"ruby",
-	"minify",
-	"compress",
-	"html",
-	"css",
-	"js",
-	"javascript"
-]
-categories = [
-    "octopress",
-    "ruby"
-]
+keywords = ["octopress", "ruby", "minify", "compress", "html", "css", "js", "javascript"]
+categories = ["octopress", "ruby"]
 +++
 After putting my Octopress site and blog together, I obviously couldn't help tinkering even if I did promise myself not to sink too much time into it. I originally wanted to keep it mostly standard and low maintenance so I could focus on other projects, but cracking it open was just too tempting!
 
 I am definitely very happy with how it handles most things right out of the box - it's incredibly convenient and works smoothly - but a quick inspection with [PageSpeed Insights](http://developers.google.com/speed/pagespeed/insights/) pointed out a few obvious areas where I felt I could make improvements.
 
 Bring it on!
-
-<!-- more -->
 
 ---
 

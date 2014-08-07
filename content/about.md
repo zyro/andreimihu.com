@@ -1,8 +1,8 @@
 +++
-title = "About Me"
 date = "2014-04-09"
-keywords = ["andrei mihu","about","website","blog","contact"]
+title = "About Me"
 description = "About me, my tech musings, current projects and how to get in touch!"
+keywords = ["andrei mihu", "about", "website", "blog", "contact"]
 menu = "main"
 +++
 Hi, I'm Andrei! I'm a software engineer living and working in London.

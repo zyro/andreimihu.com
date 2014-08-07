@@ -1,8 +1,8 @@
 +++
-title = "License"
 date = "2014-04-09"
-keywords = ["license","blog","code"]
+title = "License"
 description = "License for the contents of this website and blog"
+keywords = ["license", "blog", "code"]
 +++
 ### Content license
 
