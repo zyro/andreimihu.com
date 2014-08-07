@@ -1,0 +1,17 @@
+name = "Utter"
+license = "MIT"
+source_repo = "https://github.com/zyro/utter"
+description = "An elegant open source and mobile first theme"
+tags = ["blog", "personal"]
+features = ["blog", "personal"]
+
+[author]
+    name = "Andrei Mihu"
+    email = "hello@andreimihu.com"
+    url = "http://andreimihu.com"
+
+# If Porting existing theme
+[original]
+    author =  "mdo"
+    url = "http://andhyde.com"
+    repo = "http://www.github.com/mdo/hyde"

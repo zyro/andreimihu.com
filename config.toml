@@ -1,0 +1,40 @@
+baseurl = "http://andreimihu.com/"
+title = "Always a Work in Progress"
+languageCode = "en-us"
+MetaDataFormat = "toml"
+
+[author]
+    name = "Andrei Mihu"
+
+[permalinks]
+    # Change the permalink format for the 'post' content type.
+    post = "/blog/:year/:month/:day/:title/"
+
+[params]
+    # Default page metadata, used when the specific page doesn't give these.
+    defaultDescription = "Tech musings, current projects and more about me, Andrei Mihu!"
+    defaultKeywords = "andrei mihu,home,website,blog"
+
+    # Changes sidebar background and link/accent colours.
+    # This also works: "theme-base-0c layout-reverse", or just "layout-reverse".
+	theme = "theme-base-0c"
+
+    # Tagline to display under the author name in the sidebar, keep it short.
+	tagline = "The pursuit of server-side scale with Elixir and Java"
+
+    # Metadata used to drive integrations.
+	googleAuthorship = "116158239234656634929"
+    googleAnalytics = "UA-44918664-1"
+    disqusShortname = "andreimihu"
+    gravatarHash = "4ad01d4e7c9463cfb5119bdf07d5fcfa"
+
+    # Sidebar social links, avoid enabling too many of these if possible.
+    github = "https://github.com/zyro"
+    linkedin = "http://www.linkedin.com/in/andreimihu"
+    googleplus = ""
+    facebook = ""
+    twitter = ""
+
+[indexes]
+    tag = "tags"
+    topic = "topics"
