@@ -7,18 +7,18 @@
     </div>
 
     <ul class="sidebar-nav">
-      <li><a href="/">Blog</a></li>
+      <li class="sidebar-nav-item"><a href="/">Blog</a></li>
       {{ range .Site.Menus.main }}
-      <li><a href="{{ .Url }}">{{ .Name }}</a></li>
+      <li class="sidebar-nav-item"><a href="{{ .Url }}">{{ .Name }}</a></li>
       {{end}}
     </ul>
 
     <ul class="sidebar-nav">
-      {{ with .Site.Params.github }}<li><a href="{{ . }}">GitHub</a></li>{{ end }}
-      {{ with .Site.Params.linkedin }}<li><a href="{{ . }}">LinkedIn</a></li>{{ end }}
-      {{ with .Site.Params.googleplus }}<li><a href="{{ . }}">Google+</a></li>{{ end }}
-      {{ with .Site.Params.facebook }}<li><a href="{{ . }}">Facebook</a></li>{{ end }}
-      {{ with .Site.Params.twitter }}<li><a href="{{ . }}">Twitter</a></li>{{ end }}
+      {{ with .Site.Params.github }}<li class="sidebar-nav-item"><a href="{{ . }}">GitHub</a></li>{{ end }}
+      {{ with .Site.Params.linkedin }}<li class="sidebar-nav-item"><a href="{{ . }}">LinkedIn</a></li>{{ end }}
+      {{ with .Site.Params.googleplus }}<li class="sidebar-nav-item"><a href="{{ . }}">Google+</a></li>{{ end }}
+      {{ with .Site.Params.facebook }}<li class="sidebar-nav-item"><a href="{{ . }}">Facebook</a></li>{{ end }}
+      {{ with .Site.Params.twitter }}<li class="sidebar-nav-item"><a href="{{ . }}">Twitter</a></li>{{ end }}
     </ul>
 
     <p>Copyright &copy; {{ .Now.Format "2006" }} <a href="/license">License</a><br/>
