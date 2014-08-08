@@ -13,8 +13,6 @@ My main interest is in server-side technology and massive scalability, but I've 
 
 Check out my [GitHub page](https://github.com/zyro) to see what I've been up to recently!
 
----
-
 ### Contact
 
 If you'd like to get in touch, you can find me on [LinkedIn](http://www.linkedin.com/in/andreimihu) or reach me at hello@andreimihu.com
