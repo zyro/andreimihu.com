@@ -76,7 +76,7 @@ Some are designed for only one resource type, some multiple. Some build on top o
 
 [jekyll-press](https://github.com/stereobooster/jekyll-press) is the closest to what I wanted, and I may actually go back to using it, but its integration was a bit rough due to some Octopress particularities. Most notably, Octopress invokes Compass as a separate process, both for initial asset generation and when running in preview mode. While this works, I noticed odd results when Jekyll would minify resources on their way to the `public` folder and Compass would believe they have been improperly altered after reaching the folder, then generate a fresh copy.
 
-I toyed with creating my own plugin based on [jekyll-press](https://github.com/stereobooster/jekyll-press) using my preferred CSS/JS/HTML minification libraries but ended up abandoning this idea before getting very far with it, again for the reasons above. The code is [here](/code/custom-press.rb) if anyone finds it useful.
+I toyed with creating my own plugin based on [jekyll-press](https://github.com/stereobooster/jekyll-press) using my preferred CSS/JS/HTML minification libraries but ended up abandoning this idea before getting very far with it, again for the reasons above.
 
 The solution I settled on makes use of the libraries below. These could easily be substituted for pure Ruby solutions, but the underlying Java libraries of the wrappers below are very mature, stable and reliable.
 
