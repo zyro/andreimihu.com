@@ -11,6 +11,9 @@ MetaDataFormat = "toml"
     # Change the permalink format for the 'post' content type.
     post = "/blog/:year/:month/:day/:title/"
 
+[indexes]
+    category = "categories"
+
 [params]
     # Default page metadata, used when the specific page doesn't set its own.
     defaultDescription = "Tech musings, current projects and more about me, Andrei Mihu!"
@@ -37,7 +40,3 @@ MetaDataFormat = "toml"
     googleplus = ""
     facebook = ""
     twitter = ""
-
-[indexes]
-    tag = "tags"
-    topic = "topics"
