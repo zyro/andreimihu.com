@@ -3,6 +3,8 @@ title = "Always a Work in Progress"
 languageCode = "en-us"
 disqusShortname = "andreimihu"
 MetaDataFormat = "toml"
+theme = "hyde-x"
+paginate = 10
 
 [author]
     name = "Andrei Mihu"
