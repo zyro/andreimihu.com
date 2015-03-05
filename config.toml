@@ -29,6 +29,7 @@ paginate = 10
     highlight = "solarized_light"
 
     # Tagline to display under the author name in the sidebar, keep it short.
+    # You can use markdown here.
 	tagline = "The pursuit of server-side scale with Elixir and Java"
 
     # Metadata used to drive integrations.
