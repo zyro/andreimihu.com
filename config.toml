@@ -30,14 +30,14 @@ paginate = 10
 
     # Tagline to display under the author name in the sidebar, keep it short.
     # You can use markdown here.
-	tagline = "The pursuit of server-side scale with Elixir and Java"
+	tagline = "The pursuit of massive server-side scale with [Elixir](http://elixir-lang.org)"
 
     # Metadata used to drive integrations.
 	googleAuthorship = "116158239234656634929"
     googleAnalytics = "UA-44918664-1"
     gravatarHash = "4ad01d4e7c9463cfb5119bdf07d5fcfa"
 
-    # Sidebar social links, avoid enabling too many of these if possible.
+    # Sidebar social links.
     github = "https://github.com/zyro"
     linkedin = "http://www.linkedin.com/in/andreimihu"
     googleplus = ""
