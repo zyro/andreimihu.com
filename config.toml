@@ -39,6 +39,7 @@ paginate = 10
 
     # Sidebar social links.
     github = "https://github.com/zyro"
+    bitbucket = ""
     linkedin = "http://www.linkedin.com/in/andreimihu"
     googleplus = ""
     facebook = ""
