@@ -13,7 +13,7 @@ paginate = 10
     # Change the permalink format for the 'post' content type.
     post = "/blog/:year/:month/:day/:title/"
 
-[indexes]
+[taxonomies]
     category = "categories"
 
 [params]
