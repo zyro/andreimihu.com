@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>Octopress: Minify HTML, CSS and JS &middot; Andrei Mihu</title>
+
+  
+  <link rel="stylesheet" href="http://andreimihu.com/css/poole.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/poole-overrides.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde-overrides.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde-x.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/highlight/solarized_light.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="http://andreimihu.com/touch-icon-144-precomposed.png">
+  <link href="http://andreimihu.com/favicon.png" rel="icon">
+
+  
+  
+  
+  
+
+  <meta name="description" content="How to improve Octopress site performance, with specific emphasis on minifying HTML, CSS and JS resources">
+  <meta name="keywords" content="octopress,ruby,minify,compress,html,css,js,javascript">
+  <link rel="author" href="http://plus.google.com/116158239234656634929">
+</head>
+<body class="theme-base-0c">
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      
+        <img src="https://www.gravatar.com/avatar/4ad01d4e7c9463cfb5119bdf07d5fcfa?s=200"
+             alt="gravatar" title="Andrei Mihu">
+      
+      <h1>Andrei Mihu</h1>
+      <p class="lead">The pursuit of massive server-side scale with <a href="http://elixir-lang.org">Elixir</a></p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item"><a href="http://andreimihu.com/">Blog</a></li>
+      
+      <li class="sidebar-nav-item"><a href="http://andreimihu.com/about/">About Me</a></li>
+      
+    </ul>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item">
+      <a href="https://github.com/zyro"><i class="fa fa-github-square fa-3x"></i></a>
+      
+      
+      <a href="http://www.linkedin.com/in/andreimihu"><i class="fa fa-linkedin-square fa-3x"></i></a>
+      
+      
+      
+      
+      <a href="http://andreimihu.com/index.xml" type="application/rss+xml"><i class="fa fa-rss-square fa-3x"></i></a>
+      </li>
+    </ul>
+
+    
+    <p><script id='flattr'>
+      (function(id){
+        var s = document.getElementById(id);
+        var f = document.createElement('iframe');
+        f.src = '//api.flattr.com/button/view/?uid=&button=compact&url=http:\/\/andreimihu.com\/&title=Always a Work in Progress';
+        f.title = 'Flattr';
+        f.height = 20;
+        f.width = 110;
+        f.style.borderWidth = 0;
+        s.parentNode.insertBefore(f, s);
+      })('flattr');
+    </script></p>
+    
+
+    <p>Copyright &copy; 2016 <a href="http://andreimihu.com/license/">License</a><br/>
+       Powered by <a href="http://gohugo.io">Hugo</a> and <a href="https://github.com/zyro/hyde-x">Hyde-X</a></p>
+  </div>
+</div>
+
+
+<div class="content container">
+  <div class="post">
+    <h1>Octopress: Minify HTML, CSS and JS</h1>
+    <span class="post-date">Nov 16, 2013 &middot; 7 minute read &middot; <a href="http://andreimihu.com/blog/2013/11/16/octopress-minify-html-css-and-js/#disqus_thread">Comments</a>
+    
+    <br/>
+    <a class="label" href="http://andreimihu.com/categories/octopress">octopress</a><a class="label" href="http://andreimihu.com/categories/ruby">ruby</a>
+    </span>
+    
+
+<p>After putting my Octopress site and blog together, I obviously couldn&rsquo;t help tinkering even if I did promise myself not to sink too much time into it. I originally wanted to keep it mostly standard and low maintenance so I could focus on other projects, but cracking it open was just too tempting!</p>
+
+<p>I am definitely very happy with how it handles most things right out of the box - it&rsquo;s incredibly convenient and works smoothly - but a quick inspection with <a href="http://developers.google.com/speed/pagespeed/insights/">PageSpeed Insights</a> pointed out a few obvious areas where I felt I could make improvements.</p>
+
+<p>Bring it on!</p>
+
+<hr />
+
+<h3 id="the-basics:02ff334bc0e016942a9a80b00ca47018">The basics</h3>
+
+<p>Since the very purpose of using Octopress is to generate a static site, there&rsquo;s already a significant <a href="http://jason.pureconcepts.net/2013/01/benchmark-octopress-wordpress/">performance advantage over dynamic engines</a>. That&rsquo;s a big advantage, but it&rsquo;s only a head start and there&rsquo;s room for better, so I ran through the usual content-independent web optimisations.</p>
+
+<p><strong>Optimise all images, including theme-provided ones.</strong> A one-off trick (once per image file) that can be a very useful space saver. I used <a href="http://imageoptim.com/">ImageOptim</a> but there are a good few tools that do this well. This process saves as much space as possible <em>without</em> impacting image quality or introducing compression artefacts. Same quality, smaller size - there&rsquo;s no downside, but many sites neglect to do this!</p>
+
+<ul>
+<li><strong>Note:</strong> This process usually strips image metadata, may or may not mess with colour profiles and so on - again, without impacting visual image quality. If you&rsquo;re serving raw graphics files, use with care!</li>
+</ul>
+
+<p><strong>Enable caching on the web server.</strong> Very basic but it&rsquo;s always a good idea to make sure it&rsquo;s done correctly - case in point, my hosting provider hadn&rsquo;t set up a default configuration so responses had no <code>Cache-Control</code> header at all! So, I dropped the <code>.htaccess</code> file below in my root public folder and Apache did the rest.</p>
+
+<pre><code class="language-apacheconf">#### CACHING ####
+# 7 DAYS DEFAULT
+ExpiresActive On
+ExpiresDefault A604800
+
+# 1 MONTH
+&lt;FilesMatch &quot;\.(ico|gif|jpe?g|png|flv|pdf|swf|mov|mp3|wmv|ppt)$&quot;&gt;
+ExpiresDefault A2419200
+Header append Cache-Control &quot;public&quot;
+&lt;/FilesMatch&gt;
+
+# 14 DAYS
+&lt;FilesMatch &quot;\.(xml|txt|html|htm|js|css)$&quot;&gt;
+ExpiresDefault A1209600
+Header append Cache-Control &quot;private, must-revalidate&quot;
+&lt;/FilesMatch&gt;
+</code></pre>
+
+<p><strong>Enable gzip compression.</strong> Another relatively basic one, there are a few ways to do this. It&rsquo;s possible to compress all resources at generation time, as long as the web server is configured to send the correct header to the client. Additionally, it&rsquo;s possible to upload two version of every resource - compressed and uncompressed - and return the correct one to the client based on request headers. I chose a third option and uploaded only uncompressed resources, then let the server worry about it and decide based on request headers whether to compress or not.</p>
+
+<ul>
+<li><strong>Note:</strong> I may revise this decision later since having both compressed and uncompressed resources readily available eliminates the runtime overhead. That said, <code>runtime compression time + transfer time</code> still beats <code>uncompressed transfer time</code> for all but the smallest of resources.</li>
+</ul>
+
+<p><strong>Use external Content Distribution Networks for common resources.</strong> Basically, <a href="http://encosia.com/3-reasons-why-you-should-let-google-host-jquery-for-you/">don&rsquo;t host your own jQuery</a> or similar. The gist of it is that it allows the client to download common resources from a CDN, which will almost certainly have servers that are faster or geographically closer to the client, and saves bandwidth at the same time. The resource may even already be cached on the client after visiting other sites that use it! All such script declarations in HTML files or template includes should point to externally hosted resources.</p>
+
+<p>So far so good! These are all generally useful whether using a static site or not, but didn&rsquo;t keep me busy for long.</p>
+
+<hr />
+
+<h3 id="the-good-part:02ff334bc0e016942a9a80b00ca47018">The good part</h3>
+
+<p>Because Octopress is built on top of Jekyll, there are a fair few options to choose from to minify or compress resouces:</p>
+
+<ul>
+<li><a href="https://github.com/paolochiodi/htmlcompressor">Htmlcompressor</a></li>
+<li><a href="https://github.com/stereobooster/html_minifier">HtmlMinifier</a></li>
+<li><a href="https://github.com/stereobooster/html_press">HtmlPress</a></li>
+<li><a href="https://github.com/matthiassiegel/cssminify">CSSminify</a></li>
+<li><a href="https://github.com/matthiassiegel/yuicssmin">YUICSSMIN</a></li>
+<li><a href="https://github.com/stereobooster/css_press">css_press</a></li>
+<li><a href="https://github.com/donaldducky/jekyll-cssminify">CssMinify</a></li>
+<li>The list goes on&hellip;</li>
+</ul>
+
+<p>Some are designed for only one resource type, some multiple. Some build on top of others. Many have issues that have been open against them for a good few months, giving me little confidence. Two plugins deserve special mentions:</p>
+
+<p><a href="https://github.com/matthodan/jekyll-asset-pipeline">Jekyll Asset Pipeline</a> is one of the most popular and works very well, but I chose not to use it because:</p>
+
+<ul>
+<li>It takes some effort to integrate given the slightly different source structure used by Octopress. I did get it working, but it felt a bit cumbersome and I wasn&rsquo;t entirely happy with it.</li>
+<li>Many theme files require some modification to take advantage of the compression and bundling provided. I wanted a solution that would still allow me to swap themes as I see fit without then going into each theme file to make changes, if at all possible.</li>
+<li>Does not handle HTML minification.</li>
+<li>Does not integrate well with Compass, which can also do some level of minification during processing, and is set up to do so in the default config provided by Octopress.</li>
+</ul>
+
+<p><a href="https://github.com/stereobooster/jekyll-press">jekyll-press</a> is the closest to what I wanted, and I may actually go back to using it, but its integration was a bit rough due to some Octopress particularities. Most notably, Octopress invokes Compass as a separate process, both for initial asset generation and when running in preview mode. While this works, I noticed odd results when Jekyll would minify resources on their way to the <code>public</code> folder and Compass would believe they have been improperly altered after reaching the folder, then generate a fresh copy.</p>
+
+<p>I toyed with creating my own plugin based on <a href="https://github.com/stereobooster/jekyll-press">jekyll-press</a> using my preferred CSS/JS/HTML minification libraries but ended up abandoning this idea before getting very far with it, again for the reasons above.</p>
+
+<p>The solution I settled on makes use of the libraries below. These could easily be substituted for pure Ruby solutions, but the underlying Java libraries of the wrappers below are very mature, stable and reliable.</p>
+
+<ul>
+<li><a href="https://github.com/sstephenson/ruby-yui-compressor">Ruby-YUI Compressor</a> for CSS and JS</li>
+<li><a href="https://github.com/completelynovel/html_compressor">html_compressor</a> for HTML</li>
+</ul>
+
+<p>First, add the following gems to the base <code>Gemfile</code> Octopress provides:</p>
+
+<pre><code class="language-ruby">gem 'yui-compressor', '~&gt; 0.12.0'
+gem 'html_compressor', '~&gt; 0.0.3'
+</code></pre>
+
+<p>Include them at the top of the <code>Rakefile</code>:</p>
+
+<pre><code class="language-ruby">require &quot;yui/compressor&quot;
+require &quot;html_compressor&quot;
+</code></pre>
+
+<p>Then add the following as independent tasks in the <code>Rakefile</code>:</p>
+
+<pre><code class="language-ruby">desc &quot;Minify CSS&quot;
+task :minify_css do
+  puts &quot;## Minifying CSS&quot;
+  compressor = YUI::CssCompressor.new
+  Dir.glob(&quot;#{public_dir}/**/*.css&quot;).each do |name|
+    puts &quot;Minifying #{name}&quot;
+    input = File.read(name)
+    output = File.open(&quot;#{name}&quot;, &quot;w&quot;)
+    output &lt;&lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &quot;Minify JS&quot;
+task :minify_js do
+  puts &quot;## Minifying JS&quot;
+  compressor = YUI::JavaScriptCompressor.new
+  Dir.glob(&quot;#{public_dir}/**/*.js&quot;).each do |name|
+    puts &quot;Minifying #{name}&quot;
+    input = File.read(name)
+    output = File.open(&quot;#{name}&quot;, &quot;w&quot;)
+    output &lt;&lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &quot;Minify HTML&quot;
+task :minify_html do
+  puts &quot;## Minifying HTML&quot;
+  compressor = HtmlCompressor::HtmlCompressor.new
+  Dir.glob(&quot;#{public_dir}/**/*.html&quot;).each do |name|
+    puts &quot;Minifying #{name}&quot;
+    input = File.read(name)
+    output = File.open(&quot;#{name}&quot;, &quot;w&quot;)
+    output &lt;&lt; compressor.compress(input)
+    output.close
+  end
+end
+</code></pre>
+
+<p>These tasks can be called individually to minify either CSS, or JS, or HTML.</p>
+
+<p>The last part is to decide where best to invoke them. I wanted to work with un-minified resources while writing blog posts so I could examine the source without hurting my eyes, so the natural choice seemed to be to minify at publishing time.</p>
+
+<p>I added the task invocations to the existing <code>deploy</code> task, which then looked like this:</p>
+
+<pre><code class="language-ruby">desc &quot;Default deploy task&quot;
+task :deploy do
+  # Check if preview posts exist, which should not be published
+  if File.exists?(&quot;.preview-mode&quot;)
+    puts &quot;## Found posts in preview mode, regenerating files ...&quot;
+    File.delete(&quot;.preview-mode&quot;)
+    Rake::Task[:generate].execute
+  end
+
+  # Apply minification tasks
+  Rake::Task[:minify_css].execute
+  Rake::Task[:minify_js].execute
+  Rake::Task[:minify_html].execute
+
+  Rake::Task[:copydot].invoke(source_dir, public_dir)
+  Rake::Task[&quot;#{deploy_default}&quot;].execute
+end
+</code></pre>
+
+<p>And there it is! Every time the <code>deploy</code> task is invoked, all resources will be minified in place in the <code>public</code> folder before <code>rsync</code> takes over and pushes them to the remote server.</p>
+
+<hr />
+
+<h3 id="conclusion:02ff334bc0e016942a9a80b00ca47018">Conclusion</h3>
+
+<p>Octopress is a great tool, no doubt about it. It&rsquo;s quick to get running, has great community support, and a bunch of great themes to get things rolling.</p>
+
+<p>That said, this experiment has made me briefly consider packing up my toys and moving over to <a href="http://middlemanapp.com/">Middleman</a>. The customisation I attempted would likely have gone smoother and integrated more cleanly, but Octopress remains my blogging tool of choice&hellip; for now!</p>
+
+  </div>
+  <div id="disqus_thread"></div>
+</div>
+
+
+<script type="text/javascript">
+var disqus_shortname = "andreimihu";
+(function () {
+    var s = document.createElement('script'); s.async = true;
+    s.type = 'text/javascript';
+    s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+    (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script>
+
+
+
+<script type="text/javascript">
+    var disqus_shortname = "andreimihu";
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+<script src="http://andreimihu.com/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+  var _gaq=[['_setAccount','UA-44918664-1'],['_trackPageview']];
+  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+  s.parentNode.insertBefore(g,s)}(document,'script'));
+</script>
+
+</body>
+</html>
+

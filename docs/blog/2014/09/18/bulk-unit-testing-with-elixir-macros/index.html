@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>Bulk unit testing with Elixir macros &middot; Andrei Mihu</title>
+
+  
+  <link rel="stylesheet" href="http://andreimihu.com/css/poole.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/poole-overrides.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde-overrides.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde-x.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/highlight/solarized_light.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="http://andreimihu.com/touch-icon-144-precomposed.png">
+  <link href="http://andreimihu.com/favicon.png" rel="icon">
+
+  
+  
+  
+  
+
+  <meta name="description" content="A clean and scalable way to leverage Elixir&#39;s macros when unit testing functions with a large number of input/output cases.">
+  <meta name="keywords" content="elixir,macro,unit testing,test,bulk">
+  <link rel="author" href="http://plus.google.com/116158239234656634929">
+</head>
+<body class="theme-base-0c">
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      
+        <img src="https://www.gravatar.com/avatar/4ad01d4e7c9463cfb5119bdf07d5fcfa?s=200"
+             alt="gravatar" title="Andrei Mihu">
+      
+      <h1>Andrei Mihu</h1>
+      <p class="lead">The pursuit of massive server-side scale with <a href="http://elixir-lang.org">Elixir</a></p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item"><a href="http://andreimihu.com/">Blog</a></li>
+      
+      <li class="sidebar-nav-item"><a href="http://andreimihu.com/about/">About Me</a></li>
+      
+    </ul>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item">
+      <a href="https://github.com/zyro"><i class="fa fa-github-square fa-3x"></i></a>
+      
+      
+      <a href="http://www.linkedin.com/in/andreimihu"><i class="fa fa-linkedin-square fa-3x"></i></a>
+      
+      
+      
+      
+      <a href="http://andreimihu.com/index.xml" type="application/rss+xml"><i class="fa fa-rss-square fa-3x"></i></a>
+      </li>
+    </ul>
+
+    
+    <p><script id='flattr'>
+      (function(id){
+        var s = document.getElementById(id);
+        var f = document.createElement('iframe');
+        f.src = '//api.flattr.com/button/view/?uid=&button=compact&url=http:\/\/andreimihu.com\/&title=Always a Work in Progress';
+        f.title = 'Flattr';
+        f.height = 20;
+        f.width = 110;
+        f.style.borderWidth = 0;
+        s.parentNode.insertBefore(f, s);
+      })('flattr');
+    </script></p>
+    
+
+    <p>Copyright &copy; 2016 <a href="http://andreimihu.com/license/">License</a><br/>
+       Powered by <a href="http://gohugo.io">Hugo</a> and <a href="https://github.com/zyro/hyde-x">Hyde-X</a></p>
+  </div>
+</div>
+
+
+<div class="content container">
+  <div class="post">
+    <h1>Bulk unit testing with Elixir macros</h1>
+    <span class="post-date">Sep 18, 2014 &middot; 3 minute read &middot; <a href="http://andreimihu.com/blog/2014/09/18/bulk-unit-testing-with-elixir-macros/#disqus_thread">Comments</a>
+    
+    <br/>
+    <a class="label" href="http://andreimihu.com/categories/elixir">elixir</a>
+    </span>
+    
+
+<p>There&rsquo;s plenty written on how to choose the best targets for unit testing, how far to take it, best practices for layout and test structure, and much more - so I won&rsquo;t discuss that.</p>
+
+<p>I also won&rsquo;t touch on when to use macros in general - that&rsquo;s covered quite well in the <a href="http://elixir-lang.org/getting_started/meta/2.html">Macros</a> part of the <a href="http://elixir-lang.org/getting_started/1.html">Elixir Getting Started guide</a>.</p>
+
+<p>This is about what you could do <em>after</em> you&rsquo;ve chosen the scope of your testing, but even <a href="http://elixir-lang.org/docs/stable/ex_unit/">ExUnit</a> macros like <code>test</code> and <code>assert</code> become too verbose through sheer weight of input/output scenarios mapped to individual tests.</p>
+
+<p>Here&rsquo;s the approach I found is the neatest way to structure those tests.</p>
+
+<hr />
+
+<h3 id="input:0491e687756f4723256d4837e9fc00cc">Input</h3>
+
+<p>We&rsquo;ll list the inputs and their corresponding expected outputs in a text file, let&rsquo;s say <code>test/input.txt</code> to keep it short, which looks like this:</p>
+
+<pre><code class="language-no-highlight">MyModule.my_function/1 a scenario || an input string || [an: :expected, output: &lt;&lt;1, 2, 3&gt;&gt;]
+MyModule.my_function/1 another scenario || another input string || [another: :expected, output: &lt;&lt;4, 5, 6&gt;&gt;]
+[ ... ]
+</code></pre>
+
+<p>Each line follows this format:</p>
+
+<p><code>test case name &lt;separator&gt; input &lt;separator&gt; expected output</code></p>
+
+<h3 id="the-tests:0491e687756f4723256d4837e9fc00cc">The tests</h3>
+
+<p>Directly in the <code>test/my_module_test.exs</code> file you&rsquo;d have this snippet, outside of any functions:</p>
+
+<pre><code class="language-elixir">for line &lt;- File.stream!(Path.join([__DIR__, &quot;input.txt&quot;]), [], :line) do
+  [name, input, expected] =
+    line |&gt; String.split(&quot;||&quot;) |&gt; Enum.map(&amp;String.strip(&amp;1))
+  test name do
+    {expected, []} = Code.eval_string(unquote(expected))
+    result = MyModule.my_function(unquote(input))
+    assert ^expected = result
+  end
+end
+</code></pre>
+
+<p>For each line in the input text file:</p>
+
+<ol>
+<li>Split the line into its components: <code>name</code>, <code>input</code>, <code>expected</code></li>
+<li>Create a new test case named <code>name</code>, which:
+
+<ul>
+<li>Converts <code>expected</code> into Elixir terms using <code>Code.eval_string/1</code>.</li>
+<li>Runs the function being tested, passing it the argument <code>input</code>.</li>
+<li>Compares the actual result and the expected one.</li>
+</ul></li>
+</ol>
+
+<p><code>Code.eval_string/1</code> is used to process complex values, like the keyword list expected output. Note that it&rsquo;s not needed for the input because that&rsquo;s a simple string in this example.</p>
+
+<p>In this example if we compare the expected output with the actual result without <code>Code.eval_string/1</code> we&rsquo;d be comparing a keyword list with a string representation of a keyword list, and it would always fail!</p>
+
+<hr />
+
+<h3 id="benefits:0491e687756f4723256d4837e9fc00cc">Benefits</h3>
+
+<p><strong>Concise!</strong> The main reason we&rsquo;re going through this trouble. This saves a fair bit of time and test clutter compared to manually writing out each input/output scenario as a test.</p>
+
+<p><strong>Individual tests with their own names.</strong> This is why one of the fields in the input text file is the test name. You get precise feedback about which cases are failing.</p>
+
+<p><strong>Tests fail independently.</strong> Because each line translates to a separate test, each one runs independently. If we were looping through the lines and running them with a private helper function, it would stop on the first failure!</p>
+
+<p><strong>Accurate test count.</strong> You&rsquo;ll get a better idea of your test count and coverage when each input/output scenario is its own test.</p>
+
+<p><strong>Easily scales to multiple functions.</strong> If testing multiple functions, their individual test data is abstracted away in separate input text files and the <code>test.exs</code> stays compact.</p>
+
+<p>Feel free to drop a message below if you have a better solution, or would like to add anything!</p>
+
+  </div>
+  <div id="disqus_thread"></div>
+</div>
+
+
+<script type="text/javascript">
+var disqus_shortname = "andreimihu";
+(function () {
+    var s = document.createElement('script'); s.async = true;
+    s.type = 'text/javascript';
+    s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+    (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script>
+
+
+
+<script type="text/javascript">
+    var disqus_shortname = "andreimihu";
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+<script src="http://andreimihu.com/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+  var _gaq=[['_setAccount','UA-44918664-1'],['_trackPageview']];
+  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+  s.parentNode.insertBefore(g,s)}(document,'script'));
+</script>
+
+</body>
+</html>
+

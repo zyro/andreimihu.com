@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ruby on Always a Work in Progress</title>
+    <link>http://andreimihu.com/categories/ruby/</link>
+    <description>Recent content in Ruby on Always a Work in Progress</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 24 Feb 2014 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://andreimihu.com/categories/ruby/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Octopress: Parallel resource processing</title>
+      <link>http://andreimihu.com/blog/2014/02/24/octopress-parallel-resource-processing/</link>
+      <pubDate>Mon, 24 Feb 2014 00:00:00 +0000</pubDate>
+      
+      <guid>http://andreimihu.com/blog/2014/02/24/octopress-parallel-resource-processing/</guid>
+      <description>
+
+&lt;p&gt;A while back I wrote about &lt;a href=&#34;http://andreimihu.com/blog/2013/11/16/octopress-minify-html-css-and-js/&#34;&gt;minifying resources in Octopress&lt;/a&gt; to improve page weight and load speed. A few extra dependencies and a little bit of additional Ruby code allowed the standard deployment task to minify HTML, CSS and JavaScript files before uploading them to the target server.&lt;/p&gt;
+
+&lt;p&gt;That&amp;rsquo;s a great place to start making an already speedy static site even faster and lighter, but there was no special attention paid to what would happen as the number of pages grew with time. Octopress does allow working on blog posts in isolation, to avoid waiting to long when working in local preview mode, but at some point all of that content must be published.&lt;/p&gt;
+
+&lt;p&gt;Enter parallelisation!&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;the-problem:a425d7c31e30382749623fcbe2a12b59&#34;&gt;The problem&lt;/h3&gt;
+
+&lt;p&gt;Left as they are, the built-in &lt;code&gt;rake&lt;/code&gt; tasks will dutifully process all of the resources in the &lt;code&gt;source&lt;/code&gt; folder one at a time. This is likely to keep the average blogger in business for a decent amount of time, but what happens when this starts taking too long?&lt;/p&gt;
+
+&lt;p&gt;Obviously there are limits to how much is reasonable to do on a single thread before the site generation or deployment time reaches &amp;lsquo;inconvenient&amp;rsquo; and keeps right on climbing!&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://nathanleclaire.com/&#34;&gt;Nathan LeClaire&lt;/a&gt; got in touch about this very issue and suggested the nifty &lt;a href=&#34;https://github.com/grosser/parallel&#34;&gt;Parallel&lt;/a&gt; library, so I took it for a spin.&lt;/p&gt;
+
+&lt;h3 id=&#34;a-solution-appears:a425d7c31e30382749623fcbe2a12b59&#34;&gt;A solution appears!&lt;/h3&gt;
+
+&lt;p&gt;Parallel makes it very easy to gracefully spin out any given bit of Ruby into its own thread or process. For the purposes of this post, I&amp;rsquo;ll look at using it in the context of the resource minification I detailed previously.&lt;/p&gt;
+
+&lt;p&gt;The initial setup is straightforward as usual. Add the new dependency to the &lt;code&gt;Gemfile&lt;/code&gt;, using the most up-to-date version available:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;gem &#39;parallel&#39;, &#39;~&amp;gt; 0.9.2&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And ensure it&amp;rsquo;s included at the top of the &lt;code&gt;Rakefile&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;require &amp;quot;parallel&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After that a very small code change transforms the additional tasks in the &lt;code&gt;Rakefile&lt;/code&gt; into:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;desc &amp;quot;Minify CSS&amp;quot;
+task :minify_css do
+  compressor = YUI::CssCompressor.new
+  Parallel.map(Dir.glob(&amp;quot;#{public_dir}/**/*.css&amp;quot;), :in_threads=&amp;gt;3) do |name|
+    puts &amp;quot;Minifying #{name}&amp;quot;
+    input = File.read(name)
+    output = File.open(&amp;quot;#{name}&amp;quot;, &amp;quot;w&amp;quot;)
+    output &amp;lt;&amp;lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &amp;quot;Minify JS&amp;quot;
+task :minify_js do
+  compressor = YUI::JavaScriptCompressor.new
+  Parallel.map(Dir.glob(&amp;quot;#{public_dir}/**/*.js&amp;quot;), :in_threads=&amp;gt;3) do |name|
+    puts &amp;quot;Minifying #{name}&amp;quot;
+    input = File.read(name)
+    output = File.open(&amp;quot;#{name}&amp;quot;, &amp;quot;w&amp;quot;)
+    output &amp;lt;&amp;lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &amp;quot;Minify HTML&amp;quot;
+task :minify_html do
+  compressor = HtmlCompressor::HtmlCompressor.new
+  Parallel.map(Dir.glob(&amp;quot;#{public_dir}/**/*.html&amp;quot;), :in_threads=&amp;gt;3) do |name|
+    puts &amp;quot;Minifying #{name}&amp;quot;
+    input = File.read(name)
+    output = File.open(&amp;quot;#{name}&amp;quot;, &amp;quot;w&amp;quot;)
+    output &amp;lt;&amp;lt; compressor.compress(input)
+    output.close
+  end
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Translation: for every &lt;code&gt;.css&lt;/code&gt; or &lt;code&gt;.js&lt;/code&gt; or &lt;code&gt;.html&lt;/code&gt; file in the target &lt;code&gt;public&lt;/code&gt; directory, or any of its sub-directories, execute the following block of code using 3 threads. Easy!&lt;/p&gt;
+
+&lt;p&gt;Feel free to experiment with the number of threads, or even use processes, but be aware results may very based on the hardware and system particulars this will run on.&lt;/p&gt;
+
+&lt;p&gt;Keeping the tasks separate still allows the level of flexibility enjoyed previously, but is it really necessary to run them one at a time? Let&amp;rsquo;s see what happens if we change the &lt;code&gt;deploy&lt;/code&gt; task to:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;desc &amp;quot;Default deploy task&amp;quot;
+task :deploy do
+  # Check if preview posts exist, which should not be published
+  if File.exists?(&amp;quot;.preview-mode&amp;quot;)
+    puts &amp;quot;## Found posts in preview mode, regenerating files ...&amp;quot;
+    File.delete(&amp;quot;.preview-mode&amp;quot;)
+    Rake::Task[:generate].execute
+  end
+
+  # Apply minification tasks
+  Parallel.map([:minify_css, :minify_js, :minify_html],
+               :in_threads =&amp;gt; 3) do |parallel_task|
+    Rake::Task[parallel_task].execute
+  end
+
+  Rake::Task[:copydot].invoke(source_dir, public_dir)
+  Rake::Task[&amp;quot;#{deploy_default}&amp;quot;].execute
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Success! Same reasoning as before, but rather than distributing a set of files to be processed across 3 threads, this is telling doing the same for 3 separate &lt;code&gt;rake&lt;/code&gt; tasks.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;conclusion:a425d7c31e30382749623fcbe2a12b59&#34;&gt;Conclusion&lt;/h3&gt;
+
+&lt;p&gt;As mentioned before, do experiment with the number of threads, try processes, see what works best for your hardware. I personally ran into trouble if I tried to spin up too many threads, and switching to processes was even less forgiving.&lt;/p&gt;
+
+&lt;p&gt;Why not take it a step further and see what other standard Octopress &lt;code&gt;rake&lt;/code&gt; tasks are good candidates for parallelisation?&lt;/p&gt;
+
+&lt;p&gt;And if anyone cares to use this (or something similar) on a larger blog, I&amp;rsquo;d love to see benchmarks!&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Octopress: Minify HTML, CSS and JS</title>
+      <link>http://andreimihu.com/blog/2013/11/16/octopress-minify-html-css-and-js/</link>
+      <pubDate>Sat, 16 Nov 2013 00:00:00 +0000</pubDate>
+      
+      <guid>http://andreimihu.com/blog/2013/11/16/octopress-minify-html-css-and-js/</guid>
+      <description>
+
+&lt;p&gt;After putting my Octopress site and blog together, I obviously couldn&amp;rsquo;t help tinkering even if I did promise myself not to sink too much time into it. I originally wanted to keep it mostly standard and low maintenance so I could focus on other projects, but cracking it open was just too tempting!&lt;/p&gt;
+
+&lt;p&gt;I am definitely very happy with how it handles most things right out of the box - it&amp;rsquo;s incredibly convenient and works smoothly - but a quick inspection with &lt;a href=&#34;http://developers.google.com/speed/pagespeed/insights/&#34;&gt;PageSpeed Insights&lt;/a&gt; pointed out a few obvious areas where I felt I could make improvements.&lt;/p&gt;
+
+&lt;p&gt;Bring it on!&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;the-basics:02ff334bc0e016942a9a80b00ca47018&#34;&gt;The basics&lt;/h3&gt;
+
+&lt;p&gt;Since the very purpose of using Octopress is to generate a static site, there&amp;rsquo;s already a significant &lt;a href=&#34;http://jason.pureconcepts.net/2013/01/benchmark-octopress-wordpress/&#34;&gt;performance advantage over dynamic engines&lt;/a&gt;. That&amp;rsquo;s a big advantage, but it&amp;rsquo;s only a head start and there&amp;rsquo;s room for better, so I ran through the usual content-independent web optimisations.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Optimise all images, including theme-provided ones.&lt;/strong&gt; A one-off trick (once per image file) that can be a very useful space saver. I used &lt;a href=&#34;http://imageoptim.com/&#34;&gt;ImageOptim&lt;/a&gt; but there are a good few tools that do this well. This process saves as much space as possible &lt;em&gt;without&lt;/em&gt; impacting image quality or introducing compression artefacts. Same quality, smaller size - there&amp;rsquo;s no downside, but many sites neglect to do this!&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Note:&lt;/strong&gt; This process usually strips image metadata, may or may not mess with colour profiles and so on - again, without impacting visual image quality. If you&amp;rsquo;re serving raw graphics files, use with care!&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Enable caching on the web server.&lt;/strong&gt; Very basic but it&amp;rsquo;s always a good idea to make sure it&amp;rsquo;s done correctly - case in point, my hosting provider hadn&amp;rsquo;t set up a default configuration so responses had no &lt;code&gt;Cache-Control&lt;/code&gt; header at all! So, I dropped the &lt;code&gt;.htaccess&lt;/code&gt; file below in my root public folder and Apache did the rest.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-apacheconf&#34;&gt;#### CACHING ####
+# 7 DAYS DEFAULT
+ExpiresActive On
+ExpiresDefault A604800
+
+# 1 MONTH
+&amp;lt;FilesMatch &amp;quot;\.(ico|gif|jpe?g|png|flv|pdf|swf|mov|mp3|wmv|ppt)$&amp;quot;&amp;gt;
+ExpiresDefault A2419200
+Header append Cache-Control &amp;quot;public&amp;quot;
+&amp;lt;/FilesMatch&amp;gt;
+
+# 14 DAYS
+&amp;lt;FilesMatch &amp;quot;\.(xml|txt|html|htm|js|css)$&amp;quot;&amp;gt;
+ExpiresDefault A1209600
+Header append Cache-Control &amp;quot;private, must-revalidate&amp;quot;
+&amp;lt;/FilesMatch&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;strong&gt;Enable gzip compression.&lt;/strong&gt; Another relatively basic one, there are a few ways to do this. It&amp;rsquo;s possible to compress all resources at generation time, as long as the web server is configured to send the correct header to the client. Additionally, it&amp;rsquo;s possible to upload two version of every resource - compressed and uncompressed - and return the correct one to the client based on request headers. I chose a third option and uploaded only uncompressed resources, then let the server worry about it and decide based on request headers whether to compress or not.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Note:&lt;/strong&gt; I may revise this decision later since having both compressed and uncompressed resources readily available eliminates the runtime overhead. That said, &lt;code&gt;runtime compression time + transfer time&lt;/code&gt; still beats &lt;code&gt;uncompressed transfer time&lt;/code&gt; for all but the smallest of resources.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Use external Content Distribution Networks for common resources.&lt;/strong&gt; Basically, &lt;a href=&#34;http://encosia.com/3-reasons-why-you-should-let-google-host-jquery-for-you/&#34;&gt;don&amp;rsquo;t host your own jQuery&lt;/a&gt; or similar. The gist of it is that it allows the client to download common resources from a CDN, which will almost certainly have servers that are faster or geographically closer to the client, and saves bandwidth at the same time. The resource may even already be cached on the client after visiting other sites that use it! All such script declarations in HTML files or template includes should point to externally hosted resources.&lt;/p&gt;
+
+&lt;p&gt;So far so good! These are all generally useful whether using a static site or not, but didn&amp;rsquo;t keep me busy for long.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;the-good-part:02ff334bc0e016942a9a80b00ca47018&#34;&gt;The good part&lt;/h3&gt;
+
+&lt;p&gt;Because Octopress is built on top of Jekyll, there are a fair few options to choose from to minify or compress resouces:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/paolochiodi/htmlcompressor&#34;&gt;Htmlcompressor&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/stereobooster/html_minifier&#34;&gt;HtmlMinifier&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/stereobooster/html_press&#34;&gt;HtmlPress&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/matthiassiegel/cssminify&#34;&gt;CSSminify&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/matthiassiegel/yuicssmin&#34;&gt;YUICSSMIN&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/stereobooster/css_press&#34;&gt;css_press&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/donaldducky/jekyll-cssminify&#34;&gt;CssMinify&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;The list goes on&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Some are designed for only one resource type, some multiple. Some build on top of others. Many have issues that have been open against them for a good few months, giving me little confidence. Two plugins deserve special mentions:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/matthodan/jekyll-asset-pipeline&#34;&gt;Jekyll Asset Pipeline&lt;/a&gt; is one of the most popular and works very well, but I chose not to use it because:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;It takes some effort to integrate given the slightly different source structure used by Octopress. I did get it working, but it felt a bit cumbersome and I wasn&amp;rsquo;t entirely happy with it.&lt;/li&gt;
+&lt;li&gt;Many theme files require some modification to take advantage of the compression and bundling provided. I wanted a solution that would still allow me to swap themes as I see fit without then going into each theme file to make changes, if at all possible.&lt;/li&gt;
+&lt;li&gt;Does not handle HTML minification.&lt;/li&gt;
+&lt;li&gt;Does not integrate well with Compass, which can also do some level of minification during processing, and is set up to do so in the default config provided by Octopress.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/stereobooster/jekyll-press&#34;&gt;jekyll-press&lt;/a&gt; is the closest to what I wanted, and I may actually go back to using it, but its integration was a bit rough due to some Octopress particularities. Most notably, Octopress invokes Compass as a separate process, both for initial asset generation and when running in preview mode. While this works, I noticed odd results when Jekyll would minify resources on their way to the &lt;code&gt;public&lt;/code&gt; folder and Compass would believe they have been improperly altered after reaching the folder, then generate a fresh copy.&lt;/p&gt;
+
+&lt;p&gt;I toyed with creating my own plugin based on &lt;a href=&#34;https://github.com/stereobooster/jekyll-press&#34;&gt;jekyll-press&lt;/a&gt; using my preferred CSS/JS/HTML minification libraries but ended up abandoning this idea before getting very far with it, again for the reasons above.&lt;/p&gt;
+
+&lt;p&gt;The solution I settled on makes use of the libraries below. These could easily be substituted for pure Ruby solutions, but the underlying Java libraries of the wrappers below are very mature, stable and reliable.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/sstephenson/ruby-yui-compressor&#34;&gt;Ruby-YUI Compressor&lt;/a&gt; for CSS and JS&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/completelynovel/html_compressor&#34;&gt;html_compressor&lt;/a&gt; for HTML&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;First, add the following gems to the base &lt;code&gt;Gemfile&lt;/code&gt; Octopress provides:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;gem &#39;yui-compressor&#39;, &#39;~&amp;gt; 0.12.0&#39;
+gem &#39;html_compressor&#39;, &#39;~&amp;gt; 0.0.3&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Include them at the top of the &lt;code&gt;Rakefile&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;require &amp;quot;yui/compressor&amp;quot;
+require &amp;quot;html_compressor&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then add the following as independent tasks in the &lt;code&gt;Rakefile&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;desc &amp;quot;Minify CSS&amp;quot;
+task :minify_css do
+  puts &amp;quot;## Minifying CSS&amp;quot;
+  compressor = YUI::CssCompressor.new
+  Dir.glob(&amp;quot;#{public_dir}/**/*.css&amp;quot;).each do |name|
+    puts &amp;quot;Minifying #{name}&amp;quot;
+    input = File.read(name)
+    output = File.open(&amp;quot;#{name}&amp;quot;, &amp;quot;w&amp;quot;)
+    output &amp;lt;&amp;lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &amp;quot;Minify JS&amp;quot;
+task :minify_js do
+  puts &amp;quot;## Minifying JS&amp;quot;
+  compressor = YUI::JavaScriptCompressor.new
+  Dir.glob(&amp;quot;#{public_dir}/**/*.js&amp;quot;).each do |name|
+    puts &amp;quot;Minifying #{name}&amp;quot;
+    input = File.read(name)
+    output = File.open(&amp;quot;#{name}&amp;quot;, &amp;quot;w&amp;quot;)
+    output &amp;lt;&amp;lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &amp;quot;Minify HTML&amp;quot;
+task :minify_html do
+  puts &amp;quot;## Minifying HTML&amp;quot;
+  compressor = HtmlCompressor::HtmlCompressor.new
+  Dir.glob(&amp;quot;#{public_dir}/**/*.html&amp;quot;).each do |name|
+    puts &amp;quot;Minifying #{name}&amp;quot;
+    input = File.read(name)
+    output = File.open(&amp;quot;#{name}&amp;quot;, &amp;quot;w&amp;quot;)
+    output &amp;lt;&amp;lt; compressor.compress(input)
+    output.close
+  end
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;These tasks can be called individually to minify either CSS, or JS, or HTML.&lt;/p&gt;
+
+&lt;p&gt;The last part is to decide where best to invoke them. I wanted to work with un-minified resources while writing blog posts so I could examine the source without hurting my eyes, so the natural choice seemed to be to minify at publishing time.&lt;/p&gt;
+
+&lt;p&gt;I added the task invocations to the existing &lt;code&gt;deploy&lt;/code&gt; task, which then looked like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;desc &amp;quot;Default deploy task&amp;quot;
+task :deploy do
+  # Check if preview posts exist, which should not be published
+  if File.exists?(&amp;quot;.preview-mode&amp;quot;)
+    puts &amp;quot;## Found posts in preview mode, regenerating files ...&amp;quot;
+    File.delete(&amp;quot;.preview-mode&amp;quot;)
+    Rake::Task[:generate].execute
+  end
+
+  # Apply minification tasks
+  Rake::Task[:minify_css].execute
+  Rake::Task[:minify_js].execute
+  Rake::Task[:minify_html].execute
+
+  Rake::Task[:copydot].invoke(source_dir, public_dir)
+  Rake::Task[&amp;quot;#{deploy_default}&amp;quot;].execute
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And there it is! Every time the &lt;code&gt;deploy&lt;/code&gt; task is invoked, all resources will be minified in place in the &lt;code&gt;public&lt;/code&gt; folder before &lt;code&gt;rsync&lt;/code&gt; takes over and pushes them to the remote server.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;conclusion:02ff334bc0e016942a9a80b00ca47018&#34;&gt;Conclusion&lt;/h3&gt;
+
+&lt;p&gt;Octopress is a great tool, no doubt about it. It&amp;rsquo;s quick to get running, has great community support, and a bunch of great themes to get things rolling.&lt;/p&gt;
+
+&lt;p&gt;That said, this experiment has made me briefly consider packing up my toys and moving over to &lt;a href=&#34;http://middlemanapp.com/&#34;&gt;Middleman&lt;/a&gt;. The customisation I attempted would likely have gone smoother and integrated more cleanly, but Octopress remains my blogging tool of choice&amp;hellip; for now!&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

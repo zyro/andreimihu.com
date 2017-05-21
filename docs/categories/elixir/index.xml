@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Elixir on Always a Work in Progress</title>
+    <link>http://andreimihu.com/categories/elixir/</link>
+    <description>Recent content in Elixir on Always a Work in Progress</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 18 Sep 2014 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://andreimihu.com/categories/elixir/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Bulk unit testing with Elixir macros</title>
+      <link>http://andreimihu.com/blog/2014/09/18/bulk-unit-testing-with-elixir-macros/</link>
+      <pubDate>Thu, 18 Sep 2014 00:00:00 +0000</pubDate>
+      
+      <guid>http://andreimihu.com/blog/2014/09/18/bulk-unit-testing-with-elixir-macros/</guid>
+      <description>
+
+&lt;p&gt;There&amp;rsquo;s plenty written on how to choose the best targets for unit testing, how far to take it, best practices for layout and test structure, and much more - so I won&amp;rsquo;t discuss that.&lt;/p&gt;
+
+&lt;p&gt;I also won&amp;rsquo;t touch on when to use macros in general - that&amp;rsquo;s covered quite well in the &lt;a href=&#34;http://elixir-lang.org/getting_started/meta/2.html&#34;&gt;Macros&lt;/a&gt; part of the &lt;a href=&#34;http://elixir-lang.org/getting_started/1.html&#34;&gt;Elixir Getting Started guide&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This is about what you could do &lt;em&gt;after&lt;/em&gt; you&amp;rsquo;ve chosen the scope of your testing, but even &lt;a href=&#34;http://elixir-lang.org/docs/stable/ex_unit/&#34;&gt;ExUnit&lt;/a&gt; macros like &lt;code&gt;test&lt;/code&gt; and &lt;code&gt;assert&lt;/code&gt; become too verbose through sheer weight of input/output scenarios mapped to individual tests.&lt;/p&gt;
+
+&lt;p&gt;Here&amp;rsquo;s the approach I found is the neatest way to structure those tests.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;input:0491e687756f4723256d4837e9fc00cc&#34;&gt;Input&lt;/h3&gt;
+
+&lt;p&gt;We&amp;rsquo;ll list the inputs and their corresponding expected outputs in a text file, let&amp;rsquo;s say &lt;code&gt;test/input.txt&lt;/code&gt; to keep it short, which looks like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-no-highlight&#34;&gt;MyModule.my_function/1 a scenario || an input string || [an: :expected, output: &amp;lt;&amp;lt;1, 2, 3&amp;gt;&amp;gt;]
+MyModule.my_function/1 another scenario || another input string || [another: :expected, output: &amp;lt;&amp;lt;4, 5, 6&amp;gt;&amp;gt;]
+[ ... ]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Each line follows this format:&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;test case name &amp;lt;separator&amp;gt; input &amp;lt;separator&amp;gt; expected output&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;the-tests:0491e687756f4723256d4837e9fc00cc&#34;&gt;The tests&lt;/h3&gt;
+
+&lt;p&gt;Directly in the &lt;code&gt;test/my_module_test.exs&lt;/code&gt; file you&amp;rsquo;d have this snippet, outside of any functions:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-elixir&#34;&gt;for line &amp;lt;- File.stream!(Path.join([__DIR__, &amp;quot;input.txt&amp;quot;]), [], :line) do
+  [name, input, expected] =
+    line |&amp;gt; String.split(&amp;quot;||&amp;quot;) |&amp;gt; Enum.map(&amp;amp;String.strip(&amp;amp;1))
+  test name do
+    {expected, []} = Code.eval_string(unquote(expected))
+    result = MyModule.my_function(unquote(input))
+    assert ^expected = result
+  end
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;For each line in the input text file:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Split the line into its components: &lt;code&gt;name&lt;/code&gt;, &lt;code&gt;input&lt;/code&gt;, &lt;code&gt;expected&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Create a new test case named &lt;code&gt;name&lt;/code&gt;, which:
+
+&lt;ul&gt;
+&lt;li&gt;Converts &lt;code&gt;expected&lt;/code&gt; into Elixir terms using &lt;code&gt;Code.eval_string/1&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Runs the function being tested, passing it the argument &lt;code&gt;input&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Compares the actual result and the expected one.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;code&gt;Code.eval_string/1&lt;/code&gt; is used to process complex values, like the keyword list expected output. Note that it&amp;rsquo;s not needed for the input because that&amp;rsquo;s a simple string in this example.&lt;/p&gt;
+
+&lt;p&gt;In this example if we compare the expected output with the actual result without &lt;code&gt;Code.eval_string/1&lt;/code&gt; we&amp;rsquo;d be comparing a keyword list with a string representation of a keyword list, and it would always fail!&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&#34;benefits:0491e687756f4723256d4837e9fc00cc&#34;&gt;Benefits&lt;/h3&gt;
+
+&lt;p&gt;&lt;strong&gt;Concise!&lt;/strong&gt; The main reason we&amp;rsquo;re going through this trouble. This saves a fair bit of time and test clutter compared to manually writing out each input/output scenario as a test.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Individual tests with their own names.&lt;/strong&gt; This is why one of the fields in the input text file is the test name. You get precise feedback about which cases are failing.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Tests fail independently.&lt;/strong&gt; Because each line translates to a separate test, each one runs independently. If we were looping through the lines and running them with a private helper function, it would stop on the first failure!&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Accurate test count.&lt;/strong&gt; You&amp;rsquo;ll get a better idea of your test count and coverage when each input/output scenario is its own test.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Easily scales to multiple functions.&lt;/strong&gt; If testing multiple functions, their individual test data is abstracted away in separate input text files and the &lt;code&gt;test.exs&lt;/code&gt; stays compact.&lt;/p&gt;
+
+&lt;p&gt;Feel free to drop a message below if you have a better solution, or would like to add anything!&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

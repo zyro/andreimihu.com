@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>Octopress: Parallel resource processing &middot; Andrei Mihu</title>
+
+  
+  <link rel="stylesheet" href="http://andreimihu.com/css/poole.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/poole-overrides.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde-overrides.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/hyde-x.css">
+  <link rel="stylesheet" href="http://andreimihu.com/css/highlight/solarized_light.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="http://andreimihu.com/touch-icon-144-precomposed.png">
+  <link href="http://andreimihu.com/favicon.png" rel="icon">
+
+  
+  
+  
+  
+
+  <meta name="description" content="How to improve Octopress site generation performance, with specific emphasis on parallelising the minification of HTML, CSS and JS resources">
+  <meta name="keywords" content="octopress,ruby,parallel,multithread,speed,performance,minify,compress,html,css,js,javascript">
+  <link rel="author" href="http://plus.google.com/116158239234656634929">
+</head>
+<body class="theme-base-0c">
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      
+        <img src="https://www.gravatar.com/avatar/4ad01d4e7c9463cfb5119bdf07d5fcfa?s=200"
+             alt="gravatar" title="Andrei Mihu">
+      
+      <h1>Andrei Mihu</h1>
+      <p class="lead">The pursuit of massive server-side scale with <a href="http://elixir-lang.org">Elixir</a></p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item"><a href="http://andreimihu.com/">Blog</a></li>
+      
+      <li class="sidebar-nav-item"><a href="http://andreimihu.com/about/">About Me</a></li>
+      
+    </ul>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item">
+      <a href="https://github.com/zyro"><i class="fa fa-github-square fa-3x"></i></a>
+      
+      
+      <a href="http://www.linkedin.com/in/andreimihu"><i class="fa fa-linkedin-square fa-3x"></i></a>
+      
+      
+      
+      
+      <a href="http://andreimihu.com/index.xml" type="application/rss+xml"><i class="fa fa-rss-square fa-3x"></i></a>
+      </li>
+    </ul>
+
+    
+    <p><script id='flattr'>
+      (function(id){
+        var s = document.getElementById(id);
+        var f = document.createElement('iframe');
+        f.src = '//api.flattr.com/button/view/?uid=&button=compact&url=http:\/\/andreimihu.com\/&title=Always a Work in Progress';
+        f.title = 'Flattr';
+        f.height = 20;
+        f.width = 110;
+        f.style.borderWidth = 0;
+        s.parentNode.insertBefore(f, s);
+      })('flattr');
+    </script></p>
+    
+
+    <p>Copyright &copy; 2016 <a href="http://andreimihu.com/license/">License</a><br/>
+       Powered by <a href="http://gohugo.io">Hugo</a> and <a href="https://github.com/zyro/hyde-x">Hyde-X</a></p>
+  </div>
+</div>
+
+
+<div class="content container">
+  <div class="post">
+    <h1>Octopress: Parallel resource processing</h1>
+    <span class="post-date">Feb 24, 2014 &middot; 4 minute read &middot; <a href="http://andreimihu.com/blog/2014/02/24/octopress-parallel-resource-processing/#disqus_thread">Comments</a>
+    
+    <br/>
+    <a class="label" href="http://andreimihu.com/categories/octopress">octopress</a><a class="label" href="http://andreimihu.com/categories/ruby">ruby</a>
+    </span>
+    
+
+<p>A while back I wrote about <a href="http://andreimihu.com/blog/2013/11/16/octopress-minify-html-css-and-js/">minifying resources in Octopress</a> to improve page weight and load speed. A few extra dependencies and a little bit of additional Ruby code allowed the standard deployment task to minify HTML, CSS and JavaScript files before uploading them to the target server.</p>
+
+<p>That&rsquo;s a great place to start making an already speedy static site even faster and lighter, but there was no special attention paid to what would happen as the number of pages grew with time. Octopress does allow working on blog posts in isolation, to avoid waiting to long when working in local preview mode, but at some point all of that content must be published.</p>
+
+<p>Enter parallelisation!</p>
+
+<hr />
+
+<h3 id="the-problem:a425d7c31e30382749623fcbe2a12b59">The problem</h3>
+
+<p>Left as they are, the built-in <code>rake</code> tasks will dutifully process all of the resources in the <code>source</code> folder one at a time. This is likely to keep the average blogger in business for a decent amount of time, but what happens when this starts taking too long?</p>
+
+<p>Obviously there are limits to how much is reasonable to do on a single thread before the site generation or deployment time reaches &lsquo;inconvenient&rsquo; and keeps right on climbing!</p>
+
+<p><a href="http://nathanleclaire.com/">Nathan LeClaire</a> got in touch about this very issue and suggested the nifty <a href="https://github.com/grosser/parallel">Parallel</a> library, so I took it for a spin.</p>
+
+<h3 id="a-solution-appears:a425d7c31e30382749623fcbe2a12b59">A solution appears!</h3>
+
+<p>Parallel makes it very easy to gracefully spin out any given bit of Ruby into its own thread or process. For the purposes of this post, I&rsquo;ll look at using it in the context of the resource minification I detailed previously.</p>
+
+<p>The initial setup is straightforward as usual. Add the new dependency to the <code>Gemfile</code>, using the most up-to-date version available:</p>
+
+<pre><code class="language-ruby">gem 'parallel', '~&gt; 0.9.2'
+</code></pre>
+
+<p>And ensure it&rsquo;s included at the top of the <code>Rakefile</code>:</p>
+
+<pre><code class="language-ruby">require &quot;parallel&quot;
+</code></pre>
+
+<p>After that a very small code change transforms the additional tasks in the <code>Rakefile</code> into:</p>
+
+<pre><code class="language-ruby">desc &quot;Minify CSS&quot;
+task :minify_css do
+  compressor = YUI::CssCompressor.new
+  Parallel.map(Dir.glob(&quot;#{public_dir}/**/*.css&quot;), :in_threads=&gt;3) do |name|
+    puts &quot;Minifying #{name}&quot;
+    input = File.read(name)
+    output = File.open(&quot;#{name}&quot;, &quot;w&quot;)
+    output &lt;&lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &quot;Minify JS&quot;
+task :minify_js do
+  compressor = YUI::JavaScriptCompressor.new
+  Parallel.map(Dir.glob(&quot;#{public_dir}/**/*.js&quot;), :in_threads=&gt;3) do |name|
+    puts &quot;Minifying #{name}&quot;
+    input = File.read(name)
+    output = File.open(&quot;#{name}&quot;, &quot;w&quot;)
+    output &lt;&lt; compressor.compress(input)
+    output.close
+  end
+end
+
+desc &quot;Minify HTML&quot;
+task :minify_html do
+  compressor = HtmlCompressor::HtmlCompressor.new
+  Parallel.map(Dir.glob(&quot;#{public_dir}/**/*.html&quot;), :in_threads=&gt;3) do |name|
+    puts &quot;Minifying #{name}&quot;
+    input = File.read(name)
+    output = File.open(&quot;#{name}&quot;, &quot;w&quot;)
+    output &lt;&lt; compressor.compress(input)
+    output.close
+  end
+end
+</code></pre>
+
+<p>Translation: for every <code>.css</code> or <code>.js</code> or <code>.html</code> file in the target <code>public</code> directory, or any of its sub-directories, execute the following block of code using 3 threads. Easy!</p>
+
+<p>Feel free to experiment with the number of threads, or even use processes, but be aware results may very based on the hardware and system particulars this will run on.</p>
+
+<p>Keeping the tasks separate still allows the level of flexibility enjoyed previously, but is it really necessary to run them one at a time? Let&rsquo;s see what happens if we change the <code>deploy</code> task to:</p>
+
+<pre><code class="language-ruby">desc &quot;Default deploy task&quot;
+task :deploy do
+  # Check if preview posts exist, which should not be published
+  if File.exists?(&quot;.preview-mode&quot;)
+    puts &quot;## Found posts in preview mode, regenerating files ...&quot;
+    File.delete(&quot;.preview-mode&quot;)
+    Rake::Task[:generate].execute
+  end
+
+  # Apply minification tasks
+  Parallel.map([:minify_css, :minify_js, :minify_html],
+               :in_threads =&gt; 3) do |parallel_task|
+    Rake::Task[parallel_task].execute
+  end
+
+  Rake::Task[:copydot].invoke(source_dir, public_dir)
+  Rake::Task[&quot;#{deploy_default}&quot;].execute
+end
+</code></pre>
+
+<p>Success! Same reasoning as before, but rather than distributing a set of files to be processed across 3 threads, this is telling doing the same for 3 separate <code>rake</code> tasks.</p>
+
+<hr />
+
+<h3 id="conclusion:a425d7c31e30382749623fcbe2a12b59">Conclusion</h3>
+
+<p>As mentioned before, do experiment with the number of threads, try processes, see what works best for your hardware. I personally ran into trouble if I tried to spin up too many threads, and switching to processes was even less forgiving.</p>
+
+<p>Why not take it a step further and see what other standard Octopress <code>rake</code> tasks are good candidates for parallelisation?</p>
+
+<p>And if anyone cares to use this (or something similar) on a larger blog, I&rsquo;d love to see benchmarks!</p>
+
+  </div>
+  <div id="disqus_thread"></div>
+</div>
+
+
+<script type="text/javascript">
+var disqus_shortname = "andreimihu";
+(function () {
+    var s = document.createElement('script'); s.async = true;
+    s.type = 'text/javascript';
+    s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+    (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script>
+
+
+
+<script type="text/javascript">
+    var disqus_shortname = "andreimihu";
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+<script src="http://andreimihu.com/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+  var _gaq=[['_setAccount','UA-44918664-1'],['_trackPageview']];
+  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+  s.parentNode.insertBefore(g,s)}(document,'script'));
+</script>
+
+</body>
+</html>
+
