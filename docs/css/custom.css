@@ -1,5 +1,5 @@
 .button {
-  height: 3rem;
+  height: 3.2rem;
   padding: 0 1.5rem;
   line-height: 3rem;
 }
@@ -36,7 +36,10 @@
 
 .section {
   padding: 8rem 0 7rem;
-  text-align: center;
+}
+
+.hidden {
+  visibility: hidden;
 }
 
 /* Bigger than 550 */
